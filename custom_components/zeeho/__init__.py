@@ -304,7 +304,10 @@ class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
             if data["chargeState"] == "1":
                 chargeState = "充电中"
             else:
-                chargeState = "未充电"
+                if bmssoc == "100":
+                    chargeState = "已充满"
+                else:
+                    chargeState = "未充电"
 
             if data["headLockState"] == "0":
                 headLockState = "未锁"
