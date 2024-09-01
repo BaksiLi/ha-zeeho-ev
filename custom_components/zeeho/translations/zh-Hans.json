@@ -44,8 +44,10 @@
 	"selector": {
 		"sensors": {
 			"options": {
-				"laststoptime": "上次停止时间",
-				"parkingtime": "停车时长"
+				"bmssoc" : "车辆电量",
+				"locationTime" : "上次停车时间",
+				"chargeState" : "充电状态",
+				"headLockState" : "车锁状态"
 			}
 		},
         "addressapi": {
@@ -90,7 +92,7 @@
 						"name": "充电状态"
 					  },
 					"headLockState": {
-						"name": "车头锁状态"
+						"name": "车锁状态"
 					  },
 					"supportNetworkUnlock": {
 					  "name": "支持网络解锁"
@@ -105,7 +107,7 @@
 					  "name": "是否充电状态"
 					},
 					"locationTime": {
-					  "name": "停车时间"
+					  "name": "上次停车时间"
 					},
 					"latitude": {
 					  "name": "纬度"
@@ -128,6 +130,12 @@
 					"map_bd_lng": {
 					  "name": "百度地图经度"
 					},
+					"Querytime": {
+					  "name": "查询时间"
+					},
+					"Address": {
+					  "name": "地址"
+					},
 					"source_type": {
 					  "name": "数据源",
 					  "state": {
@@ -141,16 +149,32 @@
 			}
 		},
 		"sensor": {
-			"parkingtime": {
-				"name": "停车时长",
+			"bmssoc": {
+				"name": "车辆电量",
 				"state_attributes": {
 					"querytime": {
 					  "name": "查询时间"
 					}
 				}
 			},
-			"laststoptime": {
-				"name": "上次停止时间",
+			"chargeState": {
+				"name": "充电状态",
+				"state_attributes": {
+					"querytime": {
+					  "name": "查询时间"
+					}
+				}
+			},
+			"headLockState": {
+				"name": "车锁状态",
+				"state_attributes": {
+					"querytime": {
+					  "name": "查询时间"
+					}
+				}
+			},
+			"locationTime": {
+				"name": "上次停车时间",
 				"state_attributes": {
 					"querytime": {
 					  "name": "查询时间"
