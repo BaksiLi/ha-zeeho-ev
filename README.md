@@ -11,7 +11,14 @@ support Integration UI, Devices
 
 通过集成配置
 
+V2024.9.1
+更新获取传感器信息
+sensor
 
+
+
+
+V2024.8.31
 需要用手机抓包拿到的几个数据，zeeho，
 进行抓包https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp/vehicleHomePage
 
