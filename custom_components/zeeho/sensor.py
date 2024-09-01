@@ -28,12 +28,17 @@ from .const import (
     MANUFACTURER,
     CONF_SENSORS,
     ATTR_ADDRESS,
-    ATTR_PARKING_TIME,
-    ATTR_LASTSTOPTIME,
     ATTR_QUERYTIME,
+    ATTR_BMSSOC,
+    ATTR_LOCATIONTIME,
+    ATTR_HEADLOCKSTATE,
+    ATTR_CHARGESTATE,
     KEY_ADDRESS,
-    KEY_LASTSTOPTIME,
-    KEY_PARKING_TIME,
+    KEY_BMSSOC,
+    KEY_LOCATIONTIME,
+    KEY_CHARGESTATE,
+    KEY_HEADLOCKSTATE,
+
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,14 +50,26 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         icon="mdi:map"
     ),
     SensorEntityDescription(
-        key=KEY_PARKING_TIME,
-        name="parkingtime",
-        icon="mdi:timer-stop-outline"
+        key=KEY_BMSSOC,
+        name="bmssoc",
+        unit_of_measurement = "%",
+        device_class= "battery",
+        icon="mdi:battery"
     ),
     SensorEntityDescription(
-        key=KEY_LASTSTOPTIME,
-        name="laststoptime",
+        key=KEY_LOCATIONTIME,
+        name="locationTime",
         icon="mdi:timer-stop"
+    ),
+    SensorEntityDescription(
+        key=KEY_CHARGESTATE,
+        name="chargeState",
+        icon="mdi:battery-charging"
+    ),
+    SensorEntityDescription(
+        key=KEY_HEADLOCKSTATE,
+        name="headLockState",
+        icon="mdi:lock"
     )
 )
 
@@ -96,10 +113,14 @@ class gooddriverSensorEntity(CoordinatorEntity):
 
         #self._attr_name = f"{self.entity_description.name}"
         self._attr_translation_key = f"{self.entity_description.name}"
-        if self.entity_description.key == KEY_PARKING_TIME:
-            self._state = self.coordinator.data.get(ATTR_PARKING_TIME)
-        elif self.entity_description.key == KEY_LASTSTOPTIME:
-            self._state = self.coordinator.data.get(ATTR_LASTSTOPTIME)
+        if self.entity_description.key == KEY_BMSSOC:
+            self._state = self.coordinator.data.get(ATTR_BMSSOC)
+        elif self.entity_description.key == KEY_CHARGESTATE:
+            self._state = self.coordinator.data.get(ATTR_CHARGESTATE)
+        elif self.entity_description.key == KEY_HEADLOCKSTATE:
+            self._state = self.coordinator.data.get(ATTR_HEADLOCKSTATE)
+        elif self.entity_description.key == KEY_LOCATIONTIME:
+            self._state = self.coordinator.data.get(ATTR_LOCATIONTIME)
         elif self.entity_description.key == KEY_ADDRESS:
             if self.coordinator.data.get(ATTR_ADDRESS):                
                 self._state = self.coordinator.data.get(ATTR_ADDRESS)
@@ -123,7 +144,7 @@ class gooddriverSensorEntity(CoordinatorEntity):
             "manufacturer": MANUFACTURER,
             "entry_type": DeviceEntryType.SERVICE,
             "model": self.coordinator.data["device_model"],
-            "sw_version": self.coordinator.data["sw_version"],
+            #"sw_version": self.coordinator.data["sw_version"],
         }
 
     @property
@@ -160,10 +181,14 @@ class gooddriverSensorEntity(CoordinatorEntity):
         """Update gooddriver entity."""
         _LOGGER.debug("刷新sensor数据")
         #await self.coordinator.async_request_refresh()
-        if self.entity_description.key == KEY_PARKING_TIME:
-            self._state = self.coordinator.data.get(ATTR_PARKING_TIME)
-        elif self.entity_description.key == KEY_LASTSTOPTIME:
-            self._state = self.coordinator.data.get(ATTR_LASTSTOPTIME)
+        if self.entity_description.key == KEY_BMSSOC:
+            self._state = self.coordinator.data.get(ATTR_BMSSOC)
+        elif self.entity_description.key == KEY_CHARGESTATE:
+            self._state = self.coordinator.data.get(ATTR_CHARGESTATE)
+        elif self.entity_description.key == KEY_HEADLOCKSTATE:
+            self._state = self.coordinator.data.get(ATTR_HEADLOCKSTATE)
+        elif self.entity_description.key == KEY_LOCATIONTIME:
+            self._state = self.coordinator.data.get(ATTR_LOCATIONTIME)
         elif self.entity_description.key == KEY_ADDRESS:
             if self.coordinator.data.get(ATTR_ADDRESS):                
                 self._state = self.coordinator.data.get(ATTR_ADDRESS)

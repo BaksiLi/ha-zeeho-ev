@@ -60,6 +60,13 @@ KEY_ADDRESS = "address"
 KEY_QUERYTIME = "querytime"
 KEY_PARKING_TIME = "parkingtime"
 KEY_LASTSTOPTIME = "laststoptime"
+KEY_BMSSOC = "bmssoc"
+KEY_LOCATIONTIME="locationTime"
+KEY_CHARGESTATE="chargeState"
+KEY_HEADLOCKSTATE="headLockState"
+
+
+
 
 ATTR_DEVICE_MODEL="device_model"
 ATTR_VEHICLENAME="vehicleName"

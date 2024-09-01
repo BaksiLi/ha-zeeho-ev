@@ -5,7 +5,7 @@ Github        : https://github.com/zhoujunn/zeeho
 Description   : 
 Date          : 2024-08-31
 LastEditors   : zhoujunn
-LastEditTime  : 2024-08-31
+LastEditTime  : 2024-09-01
 '''
 
 import logging
@@ -60,8 +60,6 @@ from homeassistant.const import (
 )
 
 from .const import (
-    #CONF_USER_ID,
-    #CONF_PARAMDATA,
     CONF_Authorization,
     CONF_Cfmoto_X_Sign,
     CONF_Cfmoto_X_Param,
@@ -237,30 +235,11 @@ class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
         """Update data via library.""" 
         global varstinydict
         _LOGGER.debug("varstinydict: %s", varstinydict)
-        #if not varstinydict.get("laststoptime_"+self.location_key):            
-        #    varstinydict["laststoptime_"+self.location_key] = ""
-        #if not varstinydict.get("lastlat_"+self.location_key):
-        #    varstinydict["lastlat_"+self.location_key] = ""
-        #if not varstinydict.get("lastlon_"+self.location_key):
-        #    varstinydict["lastlon_"+self.location_key] = ""
-        #if not varstinydict.get("isonline_"+self.location_key):
-        #    varstinydict["isonline_"+self.location_key] = "no"
-        #if not varstinydict.get("lastonlinetime_"+self.location_key):
-        #    varstinydict["lastonlinetime_"+self.location_key] = ""
-        #if not varstinydict.get("lastofflinetime_"+self.location_key):
-        #    varstinydict["lastofflinetime_"+self.location_key] = ""        
-        #if not varstinydict.get("runorstop_"+self.location_key):
-        #    varstinydict["runorstop_"+self.location_key] = "stop"
+
                 
         try:
             async with timeout(10): 
                 headers = {
-                    #'Host': 'tapi.zeehoev.com:443',
-                    #'Accept': 'application/json',
-                    #'sessionid': self.user_id,
-
-                    #'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
-                    #'Cookie': 'sessionid=' + self.user_id,
                     'Host': 'tapi.zeehoev.com',
                     'Authorization': self.Authorization,
                     'Accept-Language': 'zh-CN',
@@ -334,48 +313,7 @@ class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 headLockState = "未知"   
                 
-            #if status == "离线" and (varstinydict["isonline_"+self.location_key] == "yes"):
-            #    varstinydict["lastofflinetime_"+self.location_key] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            #    varstinydict["isonline_"+self.location_key] = "no"
-            #if status == "在线" and (varstinydict["isonline_"+self.location_key] == "no"):
-            #    varstinydict["lastonlinetime_"+self.location_key] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            #    varstinydict["isonline_"+self.location_key] = "yes"            
-            #
-            #if str(thislat) != str(varstinydict["lastlat_"+self.location_key]) or str(thislon) != str(varstinydict["lastlon_"+self.location_key]):
-            #    _LOGGER.debug("变成运动: %s ,%s ,%s", varstinydict,thislat,thislon)
-            #    varstinydict["lastlat_"+self.location_key] = data["naviLocInfo"]["lat"]
-            #    varstinydict["lastlon_"+self.location_key] = data["naviLocInfo"]["lon"]
-            #    varstinydict["runorstop_"+self.location_key] = "run"                
-            #    
-            #elif varstinydict["runorstop_"+self.location_key] == "run":
-            #    _LOGGER.debug("变成静止: %s", varstinydict)
-            #    varstinydict["laststoptime_"+self.location_key] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            #    varstinydict["runorstop_"+self.location_key] = "stop"
-            #    self.save_to_file(f'{self.path}/zeeho.json', varstinydict)
-                
-            
-        #lastofflinetime = varstinydict["lastofflinetime_"+self.location_key]
-        #lastonlinetime = varstinydict["lastonlinetime_"+self.location_key]
-        #laststoptime = varstinydict["laststoptime_"+self.location_key] 
-        #runorstop =  varstinydict["runorstop_"+self.location_key]
-        
-        #def time_diff (timestamp):
-        #    result = datetime.datetime.now() - datetime.datetime.fromtimestamp(timestamp)
-        #    hours = int(result.seconds / 3600)
-        #    minutes = int(result.seconds % 3600 / 60)
-        #    seconds = result.seconds%3600%60
-        #    if result.days > 0:
-        #        return("{0}天{1}小时{2}分钟".format(result.days,hours,minutes))
-        #    elif hours > 0:
-        #        return("{0}小时{1}分钟".format(hours,minutes))
-        #    elif minutes > 0:
-        #        return("{0}分钟{1}秒".format(minutes,seconds))
-        #    else:
-        #        return("{0}秒".format(seconds)) 
-        #if laststoptime != "" and runorstop ==  "stop":
-        #    parkingtime=time_diff(int(time.mktime(time.strptime(laststoptime, "%Y-%m-%d %H:%M:%S")))) 
-        #else:
-        #    parkingtime = "未知"
+
                 
                 
         return {"location_key":self.location_key,"device_model":device_model,"vehicleName":vehicleName,"vehiclePicUrl":vehiclePicUrl,"bmssoc":bmssoc,"fullChargeTime":fullChargeTime,"otaVersion":otaVersion,"supportNetworkUnlock":supportNetworkUnlock,"totalRideMile":totalRideMile,"supportUnlock":supportUnlock,"whetherChargeState":whetherChargeState,"locationTime":locationTime,"thislat":thislat,"thislon":thislon,"altitude":altitude,"querytime":querytime,"rideState":rideState,"bluetoothAddress":bluetoothAddress,"chargeState":chargeState,"headLockState":headLockState}

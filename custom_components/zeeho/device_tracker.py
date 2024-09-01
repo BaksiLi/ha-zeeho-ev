@@ -26,8 +26,6 @@ from homeassistant.const import (
 )
 
 from .const import (
-    #CONF_USER_ID,
-    #CONF_PARAMDATA,
     CONF_XUHAO,
     CONF_GPS_CONVER,
     COORDINATOR,
@@ -174,12 +172,12 @@ class autoamapEntity(TrackerEntity):
             attrs[ATTR_VEHICLEPICURL] = data["vehiclePicUrl"]
             attrs[ATTR_BLUETOOTHADDRESS] = data["bluetoothAddress"]
             attrs[ATTR_BMSSOC] = data["bmssoc"]
-            attrs[ATTR_WHETHERCHARGESTATE] = data["whetherChargeState"]
+            #attrs[ATTR_WHETHERCHARGESTATE] = data["whetherChargeState"]
             attrs[ATTR_CHARGESTATE]=data['chargeState']
             attrs[ATTR_FULLCHARGETIME] = data["fullChargeTime"]
             attrs[ATTR_OTAVERSION] = data["otaVersion"]
             attrs[ATTR_TOTALRIDEMILE] = data["totalRideMile"]
-            attrs[ATTR_SUPPORTUNLOCK] = data["supportUnlock"]
+            #attrs[ATTR_SUPPORTUNLOCK] = data["supportUnlock"]
             attrs[ATTR_HEADLOCKSTATE] = data["headLockState"]
             attrs[ATTR_LOCATIONTIME] = data["locationTime"]
             if self._attr_show == True:

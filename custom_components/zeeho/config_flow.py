@@ -18,8 +18,6 @@ from .const import (
     CONF_Appid,
     CONF_Nonce,
     CONF_Signature,
-    #CONF_USER_ID,
-    #CONF_PARAMDATA,
     CONF_XUHAO,
     CONF_GPS_CONVER,
     CONF_UPDATE_INTERVAL,
@@ -29,6 +27,10 @@ from .const import (
     KEY_QUERYTIME,
     KEY_PARKING_TIME,
     KEY_LASTSTOPTIME,
+    KEY_BMSSOC,
+    KEY_LOCATIONTIME,
+    KEY_CHARGESTATE,
+    KEY_HEADLOCKSTATE,
     KEY_ADDRESS,
     CONF_ADDRESSAPI,
     CONF_ADDRESSAPI_KEY,
@@ -54,11 +56,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._errors = {}
     
-    #def post_data(self, url, headerstr, datastr):
-    #    json_text = requests.post(url, headers=headerstr, data = datastr).content
-    #    json_text = json_text.decode('utf-8')
-    #    resdata = json.loads(json_text)
-    #    return resdata
+
     def get_data(self, url, headerstr):
         json_text = requests.get(url, headers=headerstr).content
         json_text = json_text.decode('utf-8')
@@ -75,12 +73,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             # If it is not, continue with communication test  
             headers = {
-                    #'Host': 'tapi.zeehoev.com:443',
-                    #'Accept': 'application/json',
-                    #'sessionid': self.user_id,
-
-                    #'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
-                    #'Cookie': 'sessionid=' + self.user_id,
                     'Host': 'tapi.zeehoev.com',
                     'Authorization': user_input["Authorization"],
                     'Accept-Language': 'zh-CN',
@@ -188,8 +180,10 @@ class OptionsFlow(config_entries.OptionsFlow):
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=[
-                                {"value": KEY_PARKING_TIME, "label": "parkingtime"},
-                                {"value": KEY_LASTSTOPTIME, "label": "laststoptime"}
+                                {"value": KEY_BMSSOC, "label": "bmssoc"},
+                                {"value": KEY_LOCATIONTIME, "label": "locationTime"},
+                                {"value": KEY_CHARGESTATE, "label": "chargeState"},
+                                {"value": KEY_HEADLOCKSTATE, "label": "headLockState"}                               
                             ], 
                             multiple=True,translation_key=CONF_SENSORS
                         )
