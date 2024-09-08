@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ZEEHO",
-                "description": "If you need help with configuration, please check here: https://github.com/zhoujunn/zeeho",
+                "description": "ZEEHO EV Integration",
                 "data": {
                     "name": "Name",
                     "Authorization": "Authorization (like Bearer xxx)",
@@ -179,6 +179,18 @@
                     "querytime": {
                         "name": "⌛ Query Time"
                     }
+                }
+            }
+        }
+    },
+    "services": {
+        "unlock_vehicle": {
+            "name": "Unlock Vehicle",
+            "description": "Unlock the vehicle using the provided secret.",
+            "fields": {
+                "secret": {
+                    "name": "Secret",
+                    "description": "The secret key to unlock the vehicle."
                 }
             }
         }

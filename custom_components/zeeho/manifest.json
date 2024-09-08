@@ -4,9 +4,9 @@
   "codeowners": ["@BaksiLi"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/BaksiLi/ha-zeeho-ev",  
+  "documentation": "https://github.com/BaksiLi/ha-zeeho-ev",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/BaksiLi/ha-zeeho-ev/issues",  
+  "issue_tracker": "https://github.com/BaksiLi/ha-zeeho-ev/issues",
   "requirements": [],
-  "version": "2024.9.1"
+  "version": "2024.09.09"
 }

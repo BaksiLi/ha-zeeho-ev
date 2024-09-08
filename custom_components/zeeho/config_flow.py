@@ -1,30 +1,20 @@
-import asyncio
-import datetime
-import json
 import logging
-import re
-import time
 from collections import OrderedDict
 
-import homeassistant.helpers.config_validation as cv
-import requests
+from .account import ZeehoAccount
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (SelectSelector,
-                                            SelectSelectorConfig,
-                                            SelectSelectorMode)
+                                            SelectSelectorConfig)
 
 from .const import (CONF_ADDRESSAPI, CONF_ADDRESSAPI_KEY, CONF_ATTR_SHOW,
                     CONF_GPS_CONVER, CONF_PRIVATE_KEY, CONF_SENSORS,
-                    CONF_UPDATE_INTERVAL, CONF_XUHAO, DOMAIN, KEY_ADDRESS,
-                    KEY_BMSSOC, KEY_CHARGESTATE, KEY_HEADLOCKSTATE,
-                    KEY_LASTSTOPTIME, KEY_LOCATIONTIME, KEY_PARKING_TIME,
-                    KEY_QUERYTIME, CONF_Appid, CONF_Authorization,
+                    CONF_UPDATE_INTERVAL, CONF_XUHAO, DOMAIN, KEY_BMSSOC, KEY_CHARGESTATE, KEY_HEADLOCKSTATE,
+                    KEY_LOCATIONTIME, CONF_Appid, CONF_Authorization,
                     CONF_Cfmoto_X_Sign, CONF_Nonce, CONF_Signature,
                     CONF_User_agent)
-from .helper import get_cfmoto_x_param_str, get_epoch_time_str
 
 API_URL = "https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp/vehicleHomePage"
 
@@ -44,54 +34,33 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._errors = {}
 
-    def get_data(self, url, header):
-        json_text = requests.get(url, headers=header).content
-        json_text = json_text.decode('utf-8')
-        resdata = json.loads(json_text)
-        return resdata
+    def get_data(self, account: ZeehoAccount) -> dict:
+        return account.get_data(API_URL)
 
     async def async_step_user(self, user_input={}):
         self._errors = {}
         if user_input is not None:
-            # Check if entered host is already in HomeAssistant
             existing = await self._check_existing(user_input[CONF_NAME])
             if existing:
                 return self.async_abort(reason="already_configured")
 
-            # If it is not, continue with communication test
-            headers = {
-                'Host': 'tapi.zeehoev.com',
-                'Authorization': user_input["Authorization"],
-                'Accept-Language': 'zh-CN',
-                'Cfmoto-X-Sign': user_input["Cfmoto_X_Sign"],
-                'Cfmoto-X-Sign-Type': '0',
-                'Appid': user_input["Appid"],
-                'Nonce': user_input["Nonce"],
-                'Signature': user_input["Signature"],
-                'Timestamp': get_epoch_time_str(),
-                'Cfmote-X-Param': get_cfmoto_x_param_str(user_input["Appid"], user_input["Nonce"]),
-                'X-App-Info':
-                'MOBILE|iOS|18.0|ZEEHO_APP|2.5.20|iPhone|iPhone 14 Pro Max|1290*2796|3EEE1D62-8E74-4A2D-8091-3008D758E980|WiFi|iOS',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'User-Agent': user_input['User_agent'],
-            }
-            url = str.format(API_URL)
-            #Data = user_input["paramdata"]
-            xuhao = user_input["xuhao"]
+            account = ZeehoAccount(
+                user_input["Authorization"],
+                user_input["Cfmoto_X_Sign"],
+                user_input["Appid"],
+                user_input["Nonce"],
+                user_input["Signature"],
+                user_input["User_agent"]
+            )
 
-            redata = await self.hass.async_add_executor_job(
-                self.get_data, url, headers)
+            redata = await self.hass.async_add_executor_job(self.get_data, account)
             _LOGGER.info("Requests: %s", redata)
 
-            status = redata["code"] == "10000" and len(
-                redata["data"]) > user_input['xuhao']
-            if status == True:
-                await self.async_set_unique_id(
-                    f"zeeho-{user_input['Cfmoto_X_Sign']}--{user_input['xuhao']}"
-                    .replace(".", "_"))
+            status = redata["code"] == "10000" and len(redata["data"]) > user_input['xuhao']
+            if status:
+                await self.async_set_unique_id(f"zeeho-{user_input['Cfmoto_X_Sign']}--{user_input['xuhao']}".replace(".", "_"))
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=user_input[CONF_NAME],
-                                               data=user_input)
+                return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
             else:
                 self._errors["base"] = "communication"
 
