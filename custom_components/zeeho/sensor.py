@@ -179,7 +179,7 @@ class gooddriverSensorEntity(CoordinatorEntity):
 
     async def async_update(self):
         """Update gooddriver entity."""
-        _LOGGER.debug("刷新sensor数据")
+        _LOGGER.debug("Refreshing Sensor Data")
         #await self.coordinator.async_request_refresh()
         if self.entity_description.key == KEY_BMSSOC:
             self._state = self.coordinator.data.get(ATTR_BMSSOC)

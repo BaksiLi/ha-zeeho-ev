@@ -8,12 +8,11 @@
                 "data": {
                     "name": "名称",
 					"Authorization": "Authorization",
-                    "Cfmoto_X_Sign": "Cfmoto-X-Sign",                   
-					"Cfmoto_X_Param": "Cfmoto-X-Param",
+                    "Cfmoto_X_Sign": "Cfmoto-X-Sign",
 					"Appid": "Appid",
 					"Nonce": "Nonce",
 					"Signature": "Signature",
-					"xuhao": "序号，一般为0，如果有多个电动车，支持多个。"
+					"xuhao": "序号，一般为0，如果有多辆电动车，支持多辆。"
                 }
             }
         },
@@ -28,7 +27,7 @@
 	"options": {
         "step": {
             "user":{
-                "data": {                    
+                "data": {
                     "attr_show": "属性中显示停车时间等更多信息，但会不断刷新实体的“上次更新”时间",
 					"gps_conver": "原始数据为GCJ02(火星坐标系)，坐标转化为GPS84",
 					"update_interval_seconds": "更新间隔时间(10-3600秒),建议设为90",
@@ -96,7 +95,7 @@
 					  },
 					"supportNetworkUnlock": {
 					  "name": "支持网络解锁"
-					},					
+					},
 					"totalRideMile": {
 					  "name": "总骑行里程"
 					},
