@@ -1,6 +1,12 @@
-"""Constants for autoamap."""
-DOMAIN = "zeeho"
+"""Constants for the ZEEHO EV custom component."""
 
+# Component information
+DOMAIN = "zeeho"
+NAME = "ZEEHO EV"
+MANUFACTURER = "https://www.zeehoev.com"
+ISSUE_URL = "https://github.com/BaksiLi/ha-zeeho-ev/issues"
+
+# Required files for the component
 REQUIRED_FILES = [
     "const.py",
     "manifest.json",
@@ -8,9 +14,8 @@ REQUIRED_FILES = [
     "config_flow.py",
     "translations/zh-Hans.json",
 ]
-VERSION = "240908_mod"
-ISSUE_URL = "https://github.com/BaksiLi/ha-zeeho-ev/issues"
 
+# Startup message
 STARTUP = """
 -------------------------------------------------------------------
 {name}
@@ -21,14 +26,13 @@ If you have any issues with this you need to open an issue here:
 -------------------------------------------------------------------
 """
 
-from homeassistant.const import ATTR_DEVICE_CLASS
+# API URLs and paths
+API_BASE_URL = "https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp"
 
-ATTR_ICON = "icon"
-ATTR_LABEL = "label"
-MANUFACTURER = "https://www.zeehoev.com"
-NAME = "ZEEHO EV"
+# Import constants from Home Assistant
 
-#CONF_USER_ID = "user_id"
+# Configuration constants
+CONF_NAME = "ZEEHO-EV"
 CONF_Authorization = "Authorization"
 CONF_Cfmoto_X_Sign = "Cfmoto_X_Sign"
 CONF_User_agent = "User_agent"
@@ -47,19 +51,15 @@ CONF_MAP_BD_LNG = "map_bd_lng"
 CONF_ADDRESSAPI = "addressapi"
 CONF_ADDRESSAPI_KEY = "api_key"
 CONF_PRIVATE_KEY = "private_key"
+CONF_SECRET = "secret"
 
+# Coordinator and listener constants
 COORDINATOR = "coordinator"
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
-KEY_ADDRESS = "address"
-KEY_QUERYTIME = "querytime"
-KEY_PARKING_TIME = "parkingtime"
-KEY_LASTSTOPTIME = "laststoptime"
-KEY_BMSSOC = "bmssoc"
-KEY_LOCATIONTIME = "locationTime"
-KEY_CHARGESTATE = "chargeState"
-KEY_HEADLOCKSTATE = "headLockState"
-
+# Attribute constants
+ATTR_ICON = "icon"
+ATTR_LABEL = "label"
 ATTR_DEVICE_MODEL = "device_model"
 ATTR_VEHICLENAME = "vehicleName"
 ATTR_VEHICLEPICURL = "vehiclePicUrl"
@@ -76,9 +76,18 @@ ATTR_RIDESTATE = "rideState"
 ATTR_COURSE = "course"
 ATTR_HEADLOCKSTATE = "headLockState"
 ATTR_CHARGESTATE = "chargeState"
-
 ATTR_LASTSTOPTIME = "laststoptime"
 ATTR_LAST_UPDATE = "update_time"
 ATTR_QUERYTIME = "querytime"
 ATTR_PARKING_TIME = "parkingtime"
 ATTR_ADDRESS = "address"
+
+# Key constants
+KEY_ADDRESS = "address"
+KEY_QUERYTIME = "querytime"
+KEY_PARKING_TIME = "parkingtime"
+KEY_LASTSTOPTIME = "laststoptime"
+KEY_BMSSOC = "bmssoc"
+KEY_LOCATIONTIME = "locationTime"
+KEY_CHARGESTATE = "chargeState"
+KEY_HEADLOCKSTATE = "headLockState"

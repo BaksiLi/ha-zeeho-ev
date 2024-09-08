@@ -1,8 +1,9 @@
 import requests
 import json
-from .helper import get_cfmoto_x_param_str, get_epoch_time_str
-
-API_URL = "https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp/vehicleHomePage"
+from .utils import get_cfmoto_x_param_str, get_epoch_time_str
+from .const import API_BASE_URL
+API_PATH_VEHICLE_HOME = "vehicleHomePage"
+API_URL = f"{API_BASE_URL}/{API_PATH_VEHICLE_HOME}"
 
 class ZeehoAccount:
     def __init__(self, authorization: str, cfmoto_x_sign: str, appid: str, nonce: str, signature: str, user_agent: str):
@@ -42,7 +43,15 @@ class ZeehoAccount:
     
     def unlock_vehicle(self, secret: str) -> dict:
         url = "https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp/vehicleSet/network/unlock"
-        data = {"secret": secret}
-        response = requests.post(url, headers=self.get_headers(), data=json.dumps(data))
+        headers = self.get_headers()
+        headers.update({
+            'content-type': 'application/json',
+            'accept': '*/*',
+            'interfaceversion': '2',
+        })
+        
+        payload = {"secret": secret}
+        
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()

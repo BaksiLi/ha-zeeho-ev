@@ -73,7 +73,7 @@ SCAN_INTERVAL = datetime.timedelta(seconds=60)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add gooddriver entities from a config_entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    device_name = config_entry.data[CONF_NAME]
+    device_name = config_entry.data.get(CONF_NAME, 'ZEEHO-EV')
     enabled_sensors = [s for s in config_entry.options.get(CONF_SENSORS, []) if s in SENSOR_TYPES_KEYS]
     
     _LOGGER.debug("user_id: %s ,coordinator sensors: %s", device_name, coordinator.data)
@@ -134,7 +134,6 @@ class gooddriverSensorEntity(CoordinatorEntity):
             "manufacturer": MANUFACTURER,
             "entry_type": DeviceEntryType.SERVICE,
             "model": self.coordinator.data["device_model"],
-            #"sw_version": self.coordinator.data["sw_version"],
         }
 
     @property

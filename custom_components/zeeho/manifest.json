@@ -3,10 +3,10 @@
   "name": "Zeeho EV",
   "codeowners": ["@BaksiLi"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["switch"],
   "documentation": "https://github.com/BaksiLi/ha-zeeho-ev",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/BaksiLi/ha-zeeho-ev/issues",
   "requirements": [],
-  "version": "2024.09.09"
+  "version": "1.0.1"
 }

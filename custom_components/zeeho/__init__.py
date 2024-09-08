@@ -6,42 +6,43 @@ import os
 
 from aiohttp.client_exceptions import ClientConnectorError
 from async_timeout import timeout
-from homeassistant.const import (Platform)
+from homeassistant.const import Platform
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator,
-                                                      UpdateFailed)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .account import ZeehoAccount
-from .const import (CONF_ATTR_SHOW, CONF_UPDATE_INTERVAL, CONF_XUHAO,
-                    COORDINATOR, DOMAIN, UNDO_UPDATE_LISTENER, CONF_Appid,
-                    CONF_Authorization, CONF_Cfmoto_X_Sign, CONF_Nonce,
-                    CONF_Signature)
-
-TYPE_GEOFENCE = "Geofence"
+from .const import (
+    CONF_ATTR_SHOW, CONF_UPDATE_INTERVAL, CONF_XUHAO,
+    COORDINATOR, DOMAIN, UNDO_UPDATE_LISTENER, CONF_Appid,
+    CONF_Authorization, CONF_Cfmoto_X_Sign, CONF_Nonce,
+    CONF_Signature, API_BASE_URL
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.DEVICE_TRACKER, Platform.SENSOR]
+PLATFORMS = [Platform.DEVICE_TRACKER, Platform.SENSOR, Platform.SWITCH]
 
 USER_AGENT = 'okhttp/4.9.2'
-API_URL = "https://tapi.zeehoev.com/v1.0/app/cfmotoserverapp/vehicleHomePage"
+API_PATH_VEHICLE_HOME = "vehicleHomePage"
+API_URL = f"{API_BASE_URL}/{API_PATH_VEHICLE_HOME}"
 
 varstinydict = {}
 
 def save_to_file(filename, data):
     with open(filename, 'w') as f:
         json.dump(data, f)
+
 def read_from_file(filename):
-    with open(filename, 'r') as f:
-        data = json.load(f)
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {}
     return data       
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
     """Set up configured autoamap."""
-    # if (MAJOR_VERSION, MINOR_VERSION) < (2022, 4):
-    # _LOGGER.error("Minimum supported Hass version 2022.4")
-    # return False
     hass.data.setdefault(DOMAIN, {})
     return True
 
@@ -61,9 +62,9 @@ async def async_setup_entry(hass, config_entry) -> bool:
     location_key = config_entry.unique_id
 
     path = hass.config.path('.storage')
-    if not os.path.exists(f'{path}/zeeho.json'):
-        save_to_file(f'{path}/zeeho.json', {})
-    varstinydict = read_from_file(f'{path}/zeeho.json')
+    if not await hass.async_add_executor_job(os.path.exists, f'{path}/zeeho.json'):
+        await hass.async_add_executor_job(save_to_file, f'{path}/zeeho.json', {})
+    varstinydict = await hass.async_add_executor_job(read_from_file, f'{path}/zeeho.json')
 
     websession = async_get_clientsession(hass)
     coordinator = autoamapDataUpdateCoordinator(hass, websession, account, xuhao, location_key, update_interval_seconds)
@@ -78,13 +79,7 @@ async def async_setup_entry(hass, config_entry) -> bool:
         UNDO_UPDATE_LISTENER: undo_listener,
     }
 
-    for component in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(config_entry, component)
-        )
-
-    # Register the unlock vehicle service
-    hass.services.async_register(DOMAIN, "unlock_vehicle", handle_unlock_vehicle)
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True
 
@@ -105,20 +100,6 @@ async def async_unload_entry(hass, config_entry):
 async def update_listener(hass, config_entry):
     """Update listener."""
     await hass.config_entries.async_reload(config_entry.entry_id)
-
-async def handle_unlock_vehicle(call):
-    """Handle the service call to unlock the vehicle."""
-    secret = call.data.get("secret")
-    account = ZeehoAccount(
-        call.data.get("authorization"),
-        call.data.get("cfmoto_x_sign"),
-        call.data.get("appid"),
-        call.data.get("nonce"),
-        call.data.get("signature"),
-        call.data.get("user_agent")
-    )
-    result = await hass.async_add_executor_job(account.unlock_vehicle, secret)
-    _LOGGER.info("Unlock vehicle result: %s", result)
 
 class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, session, account: ZeehoAccount, xuhao, location_key, update_interval_seconds):
@@ -165,8 +146,8 @@ class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
             locationTime = data["location"]["locationTime"]
 
             rideState = "🟢 Online" if data["rideState"] == "在线" else "🔴 Offline"
-            chargeState = "🔋 Charging" if data["chargeState"] == "1" else "🔌 Fully Charged" if bmssoc == "100" else "⚡ On Battery"
-            headLockState = "🔓 Unlocked" if data["headLockState"] == "0" else "🔒 Locked" if data["headLockState"] == "1" else "❓ Unknown"
+            chargeState = "🔋 Charging" if data["chargeState"] == "1" else "🔌 Fully Charged" if bmssoc == "100" else f"On Battery ({bmssoc})"
+            headLockState = "🔓 Unlocked" if data["headLockState"] == "0" else "🔒 Locked" if data["headLockState"] == "1" else f"Unknown {data['headLockState']}"
 
         return {
             "location_key": self.location_key,
