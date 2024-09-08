@@ -13,7 +13,8 @@
                     "Nonce": "nonce",
                     "Signature": "signature",
                     "User_agent": "user-agent",
-                    "xuhao": "Sequence number (generally 0); supports multiple if there are several electric vehicles."
+                    "xuhao": "Sequence number (generally 0); supports multiple if there are several electric vehicles.",
+                    "secret": "🔑 Secret key for unlocking the vehicle"
                 }
             }
         },
@@ -31,11 +32,12 @@
                 "data": {
                     "attr_show": "Show parking time and additional information in attributes, constantly refreshing the entity's 'last updated' time.",
                     "gps_conver": "Raw data is GCJ02 (Mars Coordinate System); coordinates converted to GPS84.",
-                    "update_interval_seconds": "Update interval time (10-3600 seconds); recommended to set to 90.",
+                    "update_interval_seconds": "🔄 Update interval (10-3600 seconds, recommended: 90)",
                     "sensors": "Sensors",
                     "addressapi": "Address acquisition interface. Please register before using the API: [Gaode account web service key](https://lbs.amap.com/dev/key), [Baidu account server-side AK](https://lbsyun.baidu.com/apiconsole/key), [Tencent WebService API Key](https://lbs.qq.com/dev/console/application/mine).",
                     "api_key": "API key; leave empty if not acquiring address except for free api_key interfaces.",
-                    "private_key": "Fill in for digital signature; otherwise, leave empty. For Gaode, it's the private key of the security key; for Baidu, it's the SK for SN verification; for Tencent, it's the SK for signature verification."
+                    "private_key": "Fill in for digital signature; otherwise, leave empty. For Gaode, it's the private key of the security key; for Baidu, it's the SK for SN verification; for Tencent, it's the SK for signature verification.",
+                    "secret": "🔑 Secret key for unlocking (leave empty if unchanged)"
                 },
                 "description": "More optional settings"
             }
@@ -86,13 +88,13 @@
                         "name": "🆕 OTA Version"
                     },
                     "rideState": {
-                        "name": "💻 Vehicle Online"
+                        "name": "🟢 Online Status"
                     },
                     "chargeState": {
                         "name": "⚡ Charging Status"
                     },
                     "headLockState": {
-                        "name": "🔒 Car Lock Status"
+                        "name": "🔒 Lock Status"
                     },
                     "supportNetworkUnlock": {
                         "name": "🌐 Supports Network Unlock"

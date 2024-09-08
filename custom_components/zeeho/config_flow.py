@@ -74,7 +74,9 @@ class ZeehoOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            # Ensure that CONF_SECRET is included in the saved options
+            if CONF_SECRET in user_input:
+                return self.async_create_entry(title="", data=user_input)
 
         options = self.config_entry.options
         return self.async_show_form(

@@ -1,9 +1,10 @@
 import logging
-import json
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from .const import DOMAIN, ATTR_HEADLOCKSTATE, KEY_HEADLOCKSTATE, API_BASE_URL
+from .const import DOMAIN, ATTR_HEADLOCKSTATE, API_BASE_URL, CONF_SECRET, CONF_Appid, CONF_Authorization, CONF_Nonce, CONF_Cfmoto_X_Sign, CONF_Signature, CONF_User_agent
+
+import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,24 +48,23 @@ class ZeehoLockSwitch(CoordinatorEntity, SwitchEntity):
 
     async def _unlock_vehicle(self):
         """Unlock the vehicle."""
-        secret = self.coordinator.data.get("secret")
+        secret = self._config_entry.options.get(CONF_SECRET)
         if not secret:
-            _LOGGER.error("No secret available for unlocking the vehicle")
+            _LOGGER.error("No secret available for unlocking the vehicle. Please set it in the integration options.")
             return
 
         headers = {
             "content-type": "application/json",
-            "appid": self._config_entry.data.get("Appid"),
+            "appid": self._config_entry.data.get(CONF_Appid),
             "cfmoto-x-sign-type": "0",
-            "authorization": self._config_entry.data.get("Authorization"),
+            "authorization": self._config_entry.data.get(CONF_Authorization),
             "accept": "*/*",
-            "timestamp": self.coordinator.data.get("timestamp"),
-            "nonce": self._config_entry.data.get("Nonce"),
-            "cfmoto-x-sign": self._config_entry.data.get("Cfmoto_X_Sign"),
-            "signature": self._config_entry.data.get("Signature"),
-            "user-agent": self._config_entry.data.get("User_agent"),
+            "timestamp": str(int(datetime.datetime.now().timestamp() * 1000)),
+            "nonce": self._config_entry.data.get(CONF_Nonce),
+            "cfmoto-x-sign": self._config_entry.data.get(CONF_Cfmoto_X_Sign),
+            "signature": self._config_entry.data.get(CONF_Signature),
+            "user-agent": self._config_entry.data.get(CONF_User_agent),
             "interfaceversion": "2",
-            "x-app-info": self._config_entry.data.get("x_app_info", ""),
         }
 
         payload = {"secret": secret}
@@ -72,7 +72,10 @@ class ZeehoLockSwitch(CoordinatorEntity, SwitchEntity):
         session = async_get_clientsession(self.hass)
         try:
             async with session.post(API_URL, headers=headers, json=payload) as response:
-                if response.status == 200:
+                if response.status != 200:
+                    response_text = await response.text()
+                    _LOGGER.error(f"Failed to unlock vehicle. Status: {response.status}, Response: {response_text}")
+                else:
                     result = await response.json()
                     if result.get("code") == "10000":
                         self._state = True
@@ -80,8 +83,6 @@ class ZeehoLockSwitch(CoordinatorEntity, SwitchEntity):
                         _LOGGER.info("Vehicle unlocked successfully")
                     else:
                         _LOGGER.error(f"Failed to unlock vehicle: {result.get('message')}")
-                else:
-                    _LOGGER.error(f"Failed to unlock vehicle. Status: {response.status}")
         except Exception as e:
             _LOGGER.error(f"Error unlocking vehicle: {str(e)}")
 
