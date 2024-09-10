@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.DEVICE_TRACKER, Platform.SENSOR, Platform.SWITCH]
 
 USER_AGENT = 'okhttp/4.9.2'
-API_PATH_VEHICLE_HOME = "vehicleHomePage"
+API_PATH_VEHICLE_HOME = "v1.0/app/cfmotoserverapp/vehicleHomePage"
 API_URL = f"{API_BASE_URL}/{API_PATH_VEHICLE_HOME}"
 
 varstinydict = {}
@@ -34,11 +34,8 @@ def save_to_file(filename, data):
         json.dump(data, f)
 
 def read_from_file(filename):
-    try:
-        with open(filename, 'r') as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        data = {}
+    with open(filename, 'r') as f:
+        data = json.load(f)
     return data       
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
@@ -62,9 +59,9 @@ async def async_setup_entry(hass, config_entry) -> bool:
     location_key = config_entry.unique_id
 
     path = hass.config.path('.storage')
-    if not await hass.async_add_executor_job(os.path.exists, f'{path}/zeeho.json'):
-        await hass.async_add_executor_job(save_to_file, f'{path}/zeeho.json', {})
-    varstinydict = await hass.async_add_executor_job(read_from_file, f'{path}/zeeho.json')
+    if not os.path.exists(f'{path}/zeeho.json'):
+        save_to_file(f'{path}/zeeho.json', {})
+    varstinydict = read_from_file(f'{path}/zeeho.json')
 
     websession = async_get_clientsession(hass)
     coordinator = autoamapDataUpdateCoordinator(hass, websession, account, xuhao, location_key, update_interval_seconds)
@@ -79,7 +76,11 @@ async def async_setup_entry(hass, config_entry) -> bool:
         UNDO_UPDATE_LISTENER: undo_listener,
     }
 
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    for component in PLATFORMS:
+        _LOGGER.debug(f"Setting up platform: {component}")
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(config_entry, component)
+        )
 
     return True
 
@@ -145,9 +146,9 @@ class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
             altitude = data["location"]["altitude"]
             locationTime = data["location"]["locationTime"]
 
-            rideState = "🟢 Online" if data["rideState"] == "在线" else "🔴 Offline"
-            chargeState = "🔋 Charging" if data["chargeState"] == "1" else "🔌 Fully Charged" if bmssoc == "100" else f"On Battery ({bmssoc})"
-            headLockState = "🔓 Unlocked" if data["headLockState"] == "0" else "🔒 Locked" if data["headLockState"] == "1" else f"Unknown {data['headLockState']}"
+            rideState = "Online" if data["rideState"] == "在线" else f"🔴 Offline ({data['rideState']})"
+            chargeState = "Charging" if data["chargeState"] == "1" else "Fully Charged" if bmssoc == "100" else f"On Battery ({bmssoc})"
+            headLockState = "Unlocked" if data["headLockState"] == "0" else "Locked" if data["headLockState"] == "1" else f"Unknown {data['headLockState']}"
 
         return {
             "location_key": self.location_key,
