@@ -1,0 +1,25 @@
+unlock_vehicle:
+  name: Unlock Vehicle
+  description: Unlock the vehicle using the provided secret.
+  fields:
+    secret:
+      description: The secret key to unlock the vehicle.
+      example: "your_secret_key"
+    authorization:
+      description: Authorization token.
+      example: "Bearer your_token"
+    cfmoto_x_sign:
+      description: Cfmoto-X-Sign.
+      example: "your_cfmoto_x_sign"
+    appid:
+      description: App ID.
+      example: "your_app_id"
+    nonce:
+      description: Nonce.
+      example: "your_nonce"
+    signature:
+      description: Signature.
+      example: "your_signature"
+    user_agent:
+      description: User Agent.
+      example: "okhttp/4.9.2"
