@@ -1,19 +1,15 @@
-import asyncio
 import datetime
-import json
 import logging
-import os
 
 from aiohttp.client_exceptions import ClientConnectorError
 from async_timeout import timeout
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import Config, HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .account import ZeehoAccount
+from .account import ZeehoVehicleHomePageClient
 from .const import (
-    CONF_ATTR_SHOW, CONF_UPDATE_INTERVAL, CONF_XUHAO,
+    CONF_UPDATE_INTERVAL, CONF_XUHAO,
     COORDINATOR, DOMAIN, UNDO_UPDATE_LISTENER, CONF_Appid,
     CONF_Authorization, CONF_Cfmoto_X_Sign, CONF_Nonce,
     CONF_Signature, API_BASE_URL
@@ -27,148 +23,144 @@ USER_AGENT = 'okhttp/4.9.2'
 API_PATH_VEHICLE_HOME = "v1.0/app/cfmotoserverapp/vehicleHomePage"
 API_URL = f"{API_BASE_URL}/{API_PATH_VEHICLE_HOME}"
 
-varstinydict = {}
-
-def save_to_file(filename, data):
-    with open(filename, 'w') as f:
-        json.dump(data, f)
-
-def read_from_file(filename):
-    with open(filename, 'r') as f:
-        data = json.load(f)
-    return data       
-
-async def async_setup(hass: HomeAssistant, config: Config) -> bool:
-    """Set up configured autoamap."""
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Zeeho component."""
     hass.data.setdefault(DOMAIN, {})
     return True
 
-async def async_setup_entry(hass, config_entry) -> bool:
-    global varstinydict
-    account = ZeehoAccount(
-        config_entry.data[CONF_Authorization],
-        config_entry.data[CONF_Cfmoto_X_Sign],
-        config_entry.data[CONF_Appid],
-        config_entry.data[CONF_Nonce],
-        config_entry.data[CONF_Signature],
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up Zeeho from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
+    vehicle_home_page_client = ZeehoVehicleHomePageClient(
+        entry.data[CONF_Authorization],
+        entry.data[CONF_Cfmoto_X_Sign],
+        entry.data[CONF_Appid],
+        entry.data[CONF_Nonce],
+        entry.data[CONF_Signature],
         USER_AGENT
     )
-    xuhao = config_entry.data[CONF_XUHAO]
-    update_interval_seconds = config_entry.options.get(CONF_UPDATE_INTERVAL, 90)
-    attr_show = config_entry.options.get(CONF_ATTR_SHOW, True)
-    location_key = config_entry.unique_id
+    xuhao = entry.data[CONF_XUHAO]
+    update_interval_seconds = entry.options.get(CONF_UPDATE_INTERVAL, 90)
+    location_key = entry.unique_id
 
-    path = hass.config.path('.storage')
-    if not os.path.exists(f'{path}/zeeho.json'):
-        save_to_file(f'{path}/zeeho.json', {})
-    varstinydict = read_from_file(f'{path}/zeeho.json')
+    coordinator = ZeehoDataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        vehicle_home_page_client,
+        xuhao,
+        location_key,
+        update_interval=datetime.timedelta(seconds=update_interval_seconds),
+    )
+    await coordinator.async_config_entry_first_refresh()
 
-    websession = async_get_clientsession(hass)
-    coordinator = autoamapDataUpdateCoordinator(hass, websession, account, xuhao, location_key, update_interval_seconds)
-    await coordinator.async_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
-
-    undo_listener = config_entry.add_update_listener(update_listener)
-    hass.data[DOMAIN][config_entry.entry_id] = {
+    hass.data[DOMAIN][entry.entry_id] = {
         COORDINATOR: coordinator,
-        UNDO_UPDATE_LISTENER: undo_listener,
     }
 
-    for component in PLATFORMS:
-        _LOGGER.debug(f"Setting up platform: {component}")
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(config_entry, component)
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Set up update listener
+    update_listener = entry.add_update_listener(async_update_options)
+    hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER] = update_listener
 
     return True
 
-async def async_unload_entry(hass, config_entry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = all(await asyncio.gather(*[
-        hass.config_entries.async_forward_entry_unload(config_entry, component)
-        for component in PLATFORMS
-    ]))
-
-    hass.data[DOMAIN][config_entry.entry_id][UNDO_UPDATE_LISTENER]()
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(config_entry.entry_id)
+        # Remove update listener
+        update_listener = hass.data[DOMAIN][entry.entry_id].pop(UNDO_UPDATE_LISTENER, None)
+        if update_listener is not None:
+            update_listener()
+
+        hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
 
-async def update_listener(hass, config_entry):
-    """Update listener."""
-    await hass.config_entries.async_reload(config_entry.entry_id)
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update options."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
-class autoamapDataUpdateCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, session, account: ZeehoAccount, xuhao, location_key, update_interval_seconds):
-        self.account = account
+class ZeehoDataUpdateCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, logger, vehicle_home_page_client, xuhao, location_key, update_interval):
+        self.vehicle_home_page_client = vehicle_home_page_client
         self.api_xuhao = xuhao
         self.location_key = location_key
-        self.path = hass.config.path('.storage')
 
-        update_interval = datetime.timedelta(seconds=int(update_interval_seconds))
-        _LOGGER.debug("Data will be updated every %s", update_interval)
-
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=update_interval)
+        super().__init__(hass, logger, name=DOMAIN, update_interval=update_interval)
 
     async def _async_update_data(self):
-        global varstinydict
-        _LOGGER.debug("varstinydict: %s", varstinydict)
-
         try:
             async with timeout(10):
-                resdata = await self.hass.async_add_executor_job(self.account.get_data, API_URL)
-        except (ClientConnectorError) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s", API_URL)
+                resdata = await self.hass.async_add_executor_job(self.vehicle_home_page_client.get_data)
+        except ClientConnectorError as error:
+            raise UpdateFailed(f"Error communicating with API: {error}")
+        except Exception as error:
+            raise UpdateFailed(f"Unexpected error: {error}")
+
+        if "data" not in resdata:
+            raise UpdateFailed("Invalid data structure received from API")
+        
+        if resdata.get("code") != "10000":
+            raise ConfigEntryAuthFailed("API returned error code")
+
+        if len(resdata["data"]) <= self.api_xuhao:
+            raise UpdateFailed(f"No data available for index {self.api_xuhao}")
 
         data = resdata["data"][self.api_xuhao]
-        _LOGGER.debug("result data: %s", data)
+        _LOGGER.debug("Raw data received: %s", data)
 
-        if data:
-            querytime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            device_model = "ZEEHO"
-            vehicleName = data["vehicleName"]
-            vehiclePicUrl = data["vehiclePicUrl"]
-            bmssoc = data["bmssoc"]
-            bluetoothAddress = data["bluetoothAddress"]
-            fullChargeTime = data["fullChargeTime"]
-            otaVersion = data["otaVersion"]
-            supportNetworkUnlock = data["supportNetworkUnlock"]
-            totalRideMile = data["totalRideMile"]
-            supportUnlock = data["supportUnlock"]
-            whetherChargeState = data["whetherChargeState"]
-            thislat = data["location"]["latitude"]
-            thislon = data["location"]["longitude"]
-            altitude = data["location"]["altitude"]
-            locationTime = data["location"]["locationTime"]
+        if not data:
+            raise UpdateFailed("Empty data received from API")
 
-            rideState = "Online" if data["rideState"] == "在线" else f"🔴 Offline ({data['rideState']})"
-            chargeState = "Charging" if data["chargeState"] == "1" else "Fully Charged" if bmssoc == "100" else f"On Battery ({bmssoc})"
-            headLockState = "Unlocked" if data["headLockState"] == "0" else "Locked" if data["headLockState"] == "1" else f"Unknown {data['headLockState']}"
+        querytime = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+        rideState = "Online" if data.get("rideState") == "在线" else f"🔴 Offline ({data.get('rideState', 'Unknown')})"
+        chargeState = "Charging" if data.get("chargeState") == "1" else "Fully Charged" if data.get("bmssoc") == "100" else "On Battery"
+        headLockState = "Unlocked" if data.get("headLockState") == "0" else "Locked" if data.get("headLockState") == "1" else f"Unknown {data.get('headLockState', 'Unknown')}"
 
-        return {
+
+        processed_data = {
             "location_key": self.location_key,
-            "device_model": device_model,
-            "vehicleName": vehicleName,
-            "vehiclePicUrl": vehiclePicUrl,
-            "bmssoc": bmssoc,
-            "fullChargeTime": fullChargeTime,
-            "otaVersion": otaVersion,
-            "supportNetworkUnlock": supportNetworkUnlock,
-            "totalRideMile": totalRideMile,
-            "supportUnlock": supportUnlock,
-            "whetherChargeState": whetherChargeState,
-            "locationTime": locationTime,
-            "thislat": thislat,
-            "thislon": thislon,
-            "altitude": altitude,
+            "device_model": data.get("vehicleModel", "ZeehoEV"),
+            "vehicleName": data.get("vehicleName", "ZeehoEV"),
             "querytime": querytime,
-            "rideState": rideState,
-            "bluetoothAddress": bluetoothAddress,
+            # "latitude": self._safe_float(data.get("latitude")),
+            # "longitude": self._safe_float(data.get("longitude")),
+            "latitude": self._safe_float(data.get("location", {}).get("latitude")),
+            "longitude": self._safe_float(data.get("location", {}).get("longitude")),
+            "headLockState": headLockState,
+            "bmssoc": self._safe_int(data.get("bmssoc")),
             "chargeState": chargeState,
-            "headLockState": headLockState
+            "locationTime": data.get("location", {}).get("locationTime"),
+            "vinNo": data.get("vinNo"),
+            "deviceName": data.get("deviceName"),
+            "hmiRidableMile": self._safe_int(data.get("hmiRidableMile")),
+            "rideState": rideState,
+            "greenContribution": self._safe_float(data.get("greenContribution")),
+            "otaVersion": data.get("otaVersion"),
+            "vehicleType": data.get("vehicleType"),
+            "vehicleTypeName": data.get("vehicleTypeName"),
+            "totalRideMile": self._safe_float(data.get("totalRideMile")),
+            "maxMileage": self._safe_int(data.get("maxMileage")),
+            "onlineStatus": data.get("onlineStatus"),
         }
+
+        _LOGGER.debug("Processed data: %s", processed_data)
+        return processed_data
+
+    @staticmethod
+    def _safe_float(value):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _safe_int(value):
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return None

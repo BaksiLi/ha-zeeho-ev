@@ -7,11 +7,11 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 from homeassistant.helpers.dispatcher import callback
 
-from .account import ZeehoAccount
+from .account import ZeehoVehicleHomePageClient
 from .const import (CONF_ADDRESSAPI, CONF_ADDRESSAPI_KEY, CONF_ATTR_SHOW,
                     CONF_GPS_CONVER, CONF_PRIVATE_KEY, CONF_SENSORS,
                     CONF_UPDATE_INTERVAL, CONF_XUHAO, DOMAIN, KEY_BMSSOC,
-                    KEY_CHARGESTATE, KEY_HEADLOCKSTATE, KEY_LOCATIONTIME,
+                    KEY_CHARGESTATE, KEY_LOCATIONTIME,
                     CONF_Appid, CONF_Authorization, CONF_Cfmoto_X_Sign,
                     CONF_NAME, CONF_Nonce, CONF_Signature, CONF_User_agent,
                     CONF_SECRET, API_BASE_URL)
@@ -28,7 +28,7 @@ class ZeehoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                account = ZeehoAccount(
+                vehicle_home_page_client = ZeehoVehicleHomePageClient(
                     user_input[CONF_Authorization],
                     user_input[CONF_Cfmoto_X_Sign],
                     user_input[CONF_Appid],
@@ -36,7 +36,7 @@ class ZeehoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_Signature],
                     user_input[CONF_User_agent]
                 )
-                redata = await self.hass.async_add_executor_job(account.get_data, API_URL)
+                redata = await self.hass.async_add_executor_job(vehicle_home_page_client.get_data)
 
                 if redata["code"] == "10000" and len(redata["data"]) > user_input[CONF_XUHAO]:
                     await self.async_set_unique_id(f"zeeho-{user_input[CONF_Cfmoto_X_Sign]}--{user_input[CONF_XUHAO]}".replace(".", "_"))
@@ -106,9 +106,6 @@ class ZeehoOptionsFlow(config_entries.OptionsFlow):
                     }, {
                         "value": KEY_CHARGESTATE,
                         "label": "chargeState"
-                    }, {
-                        "value": KEY_HEADLOCKSTATE,
-                        "label": "headLockState"
                     }],
                                          multiple=True,
                                          translation_key=CONF_SENSORS)),

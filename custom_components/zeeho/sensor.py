@@ -55,11 +55,6 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         key=KEY_CHARGESTATE,
         name="chargeState",
         icon="mdi:battery-charging"
-    ),
-    SensorEntityDescription(
-        key=KEY_HEADLOCKSTATE,
-        name="headLockState",
-        icon="mdi:lock"
     )
 )
 
@@ -71,22 +66,18 @@ SENSOR_TYPES_KEYS = { description.key for description in SENSOR_TYPES }
 SCAN_INTERVAL = datetime.timedelta(seconds=60)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Add gooddriver entities from a config_entry."""
+    """Add Zeeho entities from a config_entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     device_name = config_entry.data.get(CONF_NAME, 'ZEEHO-EV')
     enabled_sensors = [s for s in config_entry.options.get(CONF_SENSORS, []) if s in SENSOR_TYPES_KEYS]
     
-    _LOGGER.debug("user_id: %s ,coordinator sensors: %s", device_name, coordinator.data)
-    _LOGGER.debug("enabled_sensors: %s" ,enabled_sensors)
-    
     sensors = []
     for sensor_type in enabled_sensors:
-        _LOGGER.debug("sensor_type: %s" ,sensor_type)
-        sensors.append(gooddriverSensorEntity(device_name, SENSOR_TYPES_MAP[sensor_type], coordinator))
+        sensors.append(ZeehoSensorEntity(device_name, SENSOR_TYPES_MAP[sensor_type], coordinator))
         
     async_add_entities(sensors, False)
 
-class gooddriverSensorEntity(CoordinatorEntity):
+class ZeehoSensorEntity(CoordinatorEntity):
     """Define an bjtoon_health_code entity."""
     
     _attr_has_entity_name = True
