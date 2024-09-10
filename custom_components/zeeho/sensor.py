@@ -8,7 +8,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 
-from homeassistant.const import PERCENTAGE, UnitOfLength
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -32,31 +32,31 @@ _LOGGER = logging.getLogger(__name__)
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     KEY_BMSSOC: SensorEntityDescription(
         key=KEY_BMSSOC,
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement='%',
         device_class=SensorDeviceClass.BATTERY,
         name="Battery Level",
+        icon="mdi:battery"  # Icon for battery level
     ),
     KEY_CHARGESTATE: SensorEntityDescription(
         key=KEY_CHARGESTATE,
         name="Charging Status",
+        icon="mdi:battery-charging"  # Icon for charging status
     ),
     KEY_HEADLOCKSTATE: SensorEntityDescription(
         key=KEY_HEADLOCKSTATE,
         name="Lock Status",
+        icon="mdi:lock"  # Icon for lock status
     ),
     KEY_LOCATIONTIME: SensorEntityDescription(
         key=KEY_LOCATIONTIME,
         name="Last Parking Time",
-    ),
-    KEY_ADDRESS: SensorEntityDescription(
-        key=KEY_ADDRESS,
-        name="Address",
+        icon="mdi:timer"  # Icon for time
     ),
     KEY_TOTALRIDEMILE: SensorEntityDescription(
         key=KEY_TOTALRIDEMILE,
         name="Total Ride Distance",
-        native_unit_of_measurement=UnitOfLength.KILOMETERS,
-        icon="mdi:map-marker-distance",
+        native_unit_of_measurement='km',
+        icon="mdi:map-marker-distance",  # Icon for distance
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
 }
@@ -107,8 +107,6 @@ class ZeehoSensorEntity(CoordinatorEntity):
             self._state = self.coordinator.data.get(KEY_HEADLOCKSTATE)
         elif self.entity_description.key == KEY_LOCATIONTIME:
             self._state = self.coordinator.data.get(KEY_LOCATIONTIME)
-        elif self.entity_description.key == KEY_ADDRESS:
-            self._state = self.coordinator.data.get(KEY_ADDRESS)
         elif self.entity_description.key == KEY_TOTALRIDEMILE:
             self._state = self.coordinator.data.get(KEY_TOTALRIDEMILE)
         else:

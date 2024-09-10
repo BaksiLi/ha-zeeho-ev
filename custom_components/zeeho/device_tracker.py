@@ -4,20 +4,14 @@ import datetime
 
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
 from homeassistant.components.device_tracker import SourceType
-
 from homeassistant.const import (
-    CONF_NAME,    
+    CONF_NAME,
 )
-
 from .const import (
     COORDINATOR,
     DOMAIN, 
-    MANUFACTURER
 )
-
-
 from homeassistant.helpers.entity import DeviceInfo
 
 PARALLEL_UPDATES = 1
@@ -29,8 +23,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Zeeho device tracker platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     async_add_entities([ZeehoDeviceTracker(coordinator, config_entry)], True)
-
-from . import get_device_info
 
 class ZeehoDeviceTracker(CoordinatorEntity, TrackerEntity):
     def __init__(self, coordinator, config_entry):
