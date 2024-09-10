@@ -14,7 +14,11 @@ from homeassistant.const import (
 from .const import (
     COORDINATOR,
     DOMAIN, 
+    MANUFACTURER
 )
+
+
+from homeassistant.helpers.entity import DeviceInfo
 
 PARALLEL_UPDATES = 1
 _LOGGER = logging.getLogger(__name__)
@@ -26,12 +30,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     async_add_entities([ZeehoDeviceTracker(coordinator, config_entry)], True)
 
+from . import get_device_info
+
 class ZeehoDeviceTracker(CoordinatorEntity, TrackerEntity):
     def __init__(self, coordinator, config_entry):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}_tracker"
         self._attr_name = f"{config_entry.data.get(CONF_NAME, DOMAIN)} Tracker"
+        self._attr_device_info = get_device_info(coordinator)
 
     @property
     def latitude(self):

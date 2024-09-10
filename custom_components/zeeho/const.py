@@ -3,7 +3,7 @@
 # Component information
 DOMAIN = "zeeho"
 NAME = "ZEEHO EV"
-MANUFACTURER = "https://www.zeehoev.com"
+MANUFACTURER = "ZEEHO EV (CFMoto)"
 ISSUE_URL = "https://github.com/BaksiLi/ha-zeeho-ev/issues"
 
 # Required files for the component
@@ -39,6 +39,7 @@ CONF_User_agent = "User_agent"
 CONF_Appid = "Appid"
 CONF_Nonce = "Nonce"
 CONF_Signature = "Signature"
+CONF_SECRET = "secret"
 CONF_XUHAO = "xuhao"
 CONF_GPS_CONVER = "gps_conver"
 CONF_ATTR_SHOW = "attr_show"
@@ -51,7 +52,6 @@ CONF_MAP_BD_LNG = "map_bd_lng"
 CONF_ADDRESSAPI = "addressapi"
 CONF_ADDRESSAPI_KEY = "api_key"
 CONF_PRIVATE_KEY = "private_key"
-CONF_SECRET = "secret"
 
 # Coordinator and listener constants
 COORDINATOR = "coordinator"
@@ -85,9 +85,8 @@ ATTR_ADDRESS = "address"
 # Key constants
 KEY_ADDRESS = "address"
 KEY_QUERYTIME = "querytime"
-KEY_PARKING_TIME = "parkingtime"
-KEY_LASTSTOPTIME = "laststoptime"
 KEY_BMSSOC = "bmssoc"
 KEY_LOCATIONTIME = "locationTime"
 KEY_CHARGESTATE = "chargeState"
 KEY_HEADLOCKSTATE = "headLockState"
+KEY_TOTALRIDEMILE = "totalRideMile"

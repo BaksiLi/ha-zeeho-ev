@@ -7,17 +7,21 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .account import ZeehoVehicleHomePageClient
+from .api import ZeehoVehicleHomePageClient
 from .const import (
-    CONF_UPDATE_INTERVAL, CONF_XUHAO,
+    CONF_UPDATE_INTERVAL, CONF_XUHAO, MANUFACTURER,
     COORDINATOR, DOMAIN, UNDO_UPDATE_LISTENER, CONF_Appid,
     CONF_Authorization, CONF_Cfmoto_X_Sign, CONF_Nonce,
     CONF_Signature, API_BASE_URL
 )
+from homeassistant.exceptions import ConfigEntryAuthFailed
+
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.DEVICE_TRACKER, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.DEVICE_TRACKER]
 
 USER_AGENT = 'okhttp/4.9.2'
 API_PATH_VEHICLE_HOME = "v1.0/app/cfmotoserverapp/vehicleHomePage"
@@ -117,10 +121,9 @@ class ZeehoDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed("Empty data received from API")
 
         querytime = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
-        rideState = "Online" if data.get("rideState") == "在线" else f"🔴 Offline ({data.get('rideState', 'Unknown')})"
+        rideState = "Online" if data.get("rideState") == "在线" else "Offline"
         chargeState = "Charging" if data.get("chargeState") == "1" else "Fully Charged" if data.get("bmssoc") == "100" else "On Battery"
         headLockState = "Unlocked" if data.get("headLockState") == "0" else "Locked" if data.get("headLockState") == "1" else f"Unknown {data.get('headLockState', 'Unknown')}"
-
 
         processed_data = {
             "location_key": self.location_key,
@@ -164,3 +167,15 @@ class ZeehoDataUpdateCoordinator(DataUpdateCoordinator):
             return int(value)
         except (ValueError, TypeError):
             return None
+
+def get_device_info(coordinator):
+    """Generate device info from coordinator data."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, coordinator.config_entry.entry_id)},
+        name=coordinator.data.get("device_name", "Zeeho EV"),
+        model=coordinator.data.get("vehicleName"),
+        manufacturer=MANUFACTURER,
+        sw_version=coordinator.data.get("otaVersion"),
+        hw_version=coordinator.data.get("vinNo"),
+        configuration_url="https://www.zeehoev.com",
+    )

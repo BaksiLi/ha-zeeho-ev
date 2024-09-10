@@ -1,9 +1,9 @@
 import logging
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN, ATTR_HEADLOCKSTATE, CONF_SECRET, CONF_Appid, CONF_Authorization, CONF_User_agent, MANUFACTURER
-from .account import ZeehoVehicleUnlockClient
-
+from .const import DOMAIN, ATTR_HEADLOCKSTATE, CONF_SECRET, CONF_Appid, CONF_Authorization, CONF_User_agent
+from .api import ZeehoVehicleUnlockClient
+from . import get_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,16 +27,8 @@ class ZeehoLockSwitch(CoordinatorEntity, SwitchEntity):
         )
         self._attr_name = "Lock"
         self._attr_unique_id = f"{DOMAIN}_lock_{self.config_entry.unique_id}"
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self.config_entry.unique_id)},
-            "name": self.coordinator.data["vehicleName"],
-            "model": self.coordinator.data["device_model"],
-            "manufacturer": MANUFACTURER,
-        }
-
+        self._attr_device_info = get_device_info(coordinator)
+        
     @property
     def is_on(self):
         return self.coordinator.data["headLockState"] == "Locked"

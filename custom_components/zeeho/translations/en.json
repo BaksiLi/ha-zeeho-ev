@@ -76,7 +76,7 @@
                         "name": "🖼️ Vehicle Photo"
                     },
                     "bmssoc": {
-                        "name": "🔋 Vehicle Battery Level"
+                        "name": "🔋 Battery Level"
                     },
                     "bluetoothAddress": {
                         "name": "🔗 Bluetooth Address"
@@ -100,7 +100,7 @@
                         "name": "🌐 Supports Network Unlock"
                     },
                     "totalRideMile": {
-                        "name": "📏 Total Ride Mileage"
+                        "name": "📏 Total Ride Distance"
                     },
                     "supportUnlock": {
                         "name": "🔓 Supports Unlock"
@@ -177,6 +177,22 @@
             },
             "locationTime": {
                 "name": "🕒 Last Parking Time",
+                "state_attributes": {
+                    "querytime": {
+                        "name": "⌛ Query Time"
+                    }
+                }
+            },
+            "address": {
+                "name": "🏡 Address",
+                "state_attributes": {
+                    "querytime": {
+                        "name": "⌛ Query Time"
+                    }
+                }
+            },
+            "totalRideMile": {
+                "name": "📏 Total Ride Distance",
                 "state_attributes": {
                     "querytime": {
                         "name": "⌛ Query Time"

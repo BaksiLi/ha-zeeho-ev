@@ -1,84 +1,85 @@
 """Support for Traccar device tracking."""
-from __future__ import annotations
-
 import logging
+from datetime import timedelta
 
-import datetime
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntityDescription,
+    SensorStateClass,
+)
 
+from homeassistant.const import PERCENTAGE, UnitOfLength
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceEntryType
-
-from homeassistant.components.sensor import SensorEntityDescription
-
-from homeassistant.const import CONF_NAME
 
 from .const import (
+    ATTR_QUERYTIME,
+    CONF_NAME,
     COORDINATOR,
     DOMAIN,
-    MANUFACTURER,
-    CONF_SENSORS,
-    ATTR_ADDRESS,
-    ATTR_QUERYTIME,
-    ATTR_BMSSOC,
-    ATTR_LOCATIONTIME,
-    ATTR_HEADLOCKSTATE,
-    ATTR_CHARGESTATE,
     KEY_ADDRESS,
     KEY_BMSSOC,
-    KEY_LOCATIONTIME,
     KEY_CHARGESTATE,
     KEY_HEADLOCKSTATE,
-
+    KEY_LOCATIONTIME,
+    KEY_TOTALRIDEMILE,
 )
+
+from . import get_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
-SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
-        key=KEY_ADDRESS,
-        name="address",
-        icon="mdi:map"
-    ),
-    SensorEntityDescription(
+SENSOR_TYPES: dict[str, SensorEntityDescription] = {
+    KEY_BMSSOC: SensorEntityDescription(
         key=KEY_BMSSOC,
-        name="bmssoc",
-        unit_of_measurement = "%",
-        device_class= "battery",
-        icon="mdi:battery"
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        name="Battery Level",
     ),
-    SensorEntityDescription(
-        key=KEY_LOCATIONTIME,
-        name="locationTime",
-        icon="mdi:timer-stop"
-    ),
-    SensorEntityDescription(
+    KEY_CHARGESTATE: SensorEntityDescription(
         key=KEY_CHARGESTATE,
-        name="chargeState",
-        icon="mdi:battery-charging"
-    )
-)
+        name="Charging Status",
+    ),
+    KEY_HEADLOCKSTATE: SensorEntityDescription(
+        key=KEY_HEADLOCKSTATE,
+        name="Lock Status",
+    ),
+    KEY_LOCATIONTIME: SensorEntityDescription(
+        key=KEY_LOCATIONTIME,
+        name="Last Parking Time",
+    ),
+    KEY_ADDRESS: SensorEntityDescription(
+        key=KEY_ADDRESS,
+        name="Address",
+    ),
+    KEY_TOTALRIDEMILE: SensorEntityDescription(
+        key=KEY_TOTALRIDEMILE,
+        name="Total Ride Distance",
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        icon="mdi:map-marker-distance",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+}
 
-SENSOR_TYPES_MAP = { description.key: description for description in SENSOR_TYPES }
-#_LOGGER.debug("SENSOR_TYPES_MAP: %s" ,SENSOR_TYPES_MAP)
-
-SENSOR_TYPES_KEYS = { description.key for description in SENSOR_TYPES }
-#_LOGGER.debug("SENSOR_TYPES_KEYS: %s" ,SENSOR_TYPES_KEYS)
-SCAN_INTERVAL = datetime.timedelta(seconds=60)
+SCAN_INTERVAL = timedelta(seconds=60)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add Zeeho entities from a config_entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    device_name = config_entry.data.get(CONF_NAME, 'ZEEHO-EV')
-    enabled_sensors = [s for s in config_entry.options.get(CONF_SENSORS, []) if s in SENSOR_TYPES_KEYS]
-    
+    device_name = config_entry.data.get(CONF_NAME, "ZEEHO-EV")
+
     sensors = []
-    for sensor_type in enabled_sensors:
-        sensors.append(ZeehoSensorEntity(device_name, SENSOR_TYPES_MAP[sensor_type], coordinator))
-        
+    for sensor_type, description in SENSOR_TYPES.items():
+        sensors.append(ZeehoSensorEntity(device_name, description, coordinator))
+
+    sensors.extend([
+        ZeehoDiagnosticSensor(device_name, coordinator),
+    ])
+
     async_add_entities(sensors, False)
 
 class ZeehoSensorEntity(CoordinatorEntity):
-    """Define an bjtoon_health_code entity."""
+    """Define a Zeeho sensor entity."""
     
     _attr_has_entity_name = True
       
@@ -86,95 +87,130 @@ class ZeehoSensorEntity(CoordinatorEntity):
         """Initialize."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._unique_id = f"{DOMAIN}-{device_name}-{description.key}"
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}-{description.key}"
+        self._attr_device_info = get_device_info(coordinator)
         self._device_name = device_name
-        self.coordinator = coordinator
-        
-        _LOGGER.debug("SensorEntity coordinator: %s", coordinator.data)
-
-        #self._attr_name = f"{self.entity_description.name}"
         self._attr_translation_key = f"{self.entity_description.name}"
+        self._state = None
+        self._attrs = {}
+        self._update_state()
+
+    def _update_state(self):
+        _LOGGER.debug("Updating state for sensor: %s", self.entity_description.key)
+        # _LOGGER.debug("Current coordinator data: %s", self.coordinator.data)
+
         if self.entity_description.key == KEY_BMSSOC:
-            self._state = self.coordinator.data.get(ATTR_BMSSOC)
+            self._state = self.coordinator.data.get(KEY_BMSSOC)
         elif self.entity_description.key == KEY_CHARGESTATE:
-            self._state = self.coordinator.data.get(ATTR_CHARGESTATE)
+            self._state = self.coordinator.data.get(KEY_CHARGESTATE)
         elif self.entity_description.key == KEY_HEADLOCKSTATE:
-            self._state = self.coordinator.data.get(ATTR_HEADLOCKSTATE)
+            self._state = self.coordinator.data.get(KEY_HEADLOCKSTATE)
         elif self.entity_description.key == KEY_LOCATIONTIME:
-            self._state = self.coordinator.data.get(ATTR_LOCATIONTIME)
+            self._state = self.coordinator.data.get(KEY_LOCATIONTIME)
         elif self.entity_description.key == KEY_ADDRESS:
-            if self.coordinator.data.get(ATTR_ADDRESS):                
-                self._state = self.coordinator.data.get(ATTR_ADDRESS)
-            else:
-                self._state = "unknown"
-            
-        self._attrs = {ATTR_QUERYTIME: self.coordinator.data["querytime"]}
-        
-        _LOGGER.debug(self._state)
+            self._state = self.coordinator.data.get(KEY_ADDRESS)
+        elif self.entity_description.key == KEY_TOTALRIDEMILE:
+            self._state = self.coordinator.data.get(KEY_TOTALRIDEMILE)
+        else:
+            _LOGGER.warning("Unknown sensor key: %s", self.entity_description.key)
 
-    @property
-    def unique_id(self):
-        return self._unique_id
+        self._attrs = {ATTR_QUERYTIME: self.coordinator.data.get(ATTR_QUERYTIME)}
         
-    @property
-    def device_info(self):
-        """Return the device info."""
-        return {
-            "identifiers": {(DOMAIN, self.coordinator.data["location_key"])},
-            "name": self._device_name,
-            "manufacturer": MANUFACTURER,
-            "entry_type": DeviceEntryType.SERVICE,
-            "model": self.coordinator.data["device_model"],
-        }
-
-    @property
-    def should_poll(self):
-        """Return the polling requirement of the entity."""
-        return True
+        _LOGGER.debug("Updated state for %s: %s", self.entity_description.key, self._state)
 
     @property
     def native_value(self):
-        """Return battery value of the device."""
+        """Return the state of the sensor."""
         return self._state
 
     @property
     def state(self):
         """Return the state."""
         return self._state
-    
-    @property
-    def state_attributes(self): 
-        attrs = {}
-        data = self.coordinator.data
-        if data:            
-            attrs["querytime"] = data["querytime"]        
-        return attrs
-        
 
-    async def async_added_to_hass(self):
-        """Connect to dispatcher listening for entity data notifications."""
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
+    @property
+    def extra_state_attributes(self):
+        """Return extra state attributes."""
+        return self._attrs
 
     async def async_update(self):
-        """Update gooddriver entity."""
-        _LOGGER.debug("Refreshing Sensor Data")
-        #await self.coordinator.async_request_refresh()
-        if self.entity_description.key == KEY_BMSSOC:
-            self._state = self.coordinator.data.get(ATTR_BMSSOC)
-        elif self.entity_description.key == KEY_CHARGESTATE:
-            self._state = self.coordinator.data.get(ATTR_CHARGESTATE)
-        elif self.entity_description.key == KEY_HEADLOCKSTATE:
-            self._state = self.coordinator.data.get(ATTR_HEADLOCKSTATE)
-        elif self.entity_description.key == KEY_LOCATIONTIME:
-            self._state = self.coordinator.data.get(ATTR_LOCATIONTIME)
-        elif self.entity_description.key == KEY_ADDRESS:
-            if self.coordinator.data.get(ATTR_ADDRESS):                
-                self._state = self.coordinator.data.get(ATTR_ADDRESS)
-            else:
-                self._state = "unknown"
-            
-        self._attrs = {ATTR_QUERYTIME: self.coordinator.data["querytime"]}
-        
-        
+        """Update Zeeho entity."""
+        _LOGGER.debug("Refreshing sensor data")
+        self._update_state()
+
+class ZeehoDiagnosticSensor(ZeehoSensorEntity):
+    _attr_name = "Zeeho Diagnostic"
+    _attr_icon = "mdi:motorcycle-electric"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["🟢 Online", "🔴 Offline"]
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    
+    def __init__(self, device_name, coordinator):
+        description = SensorEntityDescription(
+            key="diagnostic",
+            name="Diagnostic",
+            device_class=SensorDeviceClass.ENUM,
+        )
+        super().__init__(device_name, description, coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}-diagnostic"
+
+    def _update_state(self):
+        self._state = "🟢 Online" if self.coordinator.data.get("rideState") == "Online" else "🔴 Offline"
+        _LOGGER.debug("Updated diagnostic state: %s", self._state)
+
+    @property
+    def native_value(self):
+        self._update_state()
+        return self._state
+
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data
+        if not data:
+            return {}
+
+        return {
+            "Vehicle Name": data.get("vehicleName"),
+            "OTA Version": data.get("otaVersion"),
+            "Car Lock Status": data.get("headLockState"),
+            "Bluetooth Address": data.get("bluetoothAddress"),
+            "Vehicle Battery Level": f"{data.get('bmssoc', 0)}%",
+            "Charging Status": data.get("chargeState"),
+            "Full Charge Time": data.get("fullChargeTime"),
+            "Max Mileage": f"{data.get('maxMileage', 0)} {UnitOfLength.KILOMETERS}",
+            "Total Ride Mileage": f"{data.get('totalRideMile', 0)} {UnitOfLength.KILOMETERS}",
+            "Ride State": data.get("rideState"),
+            "Last Parking Time": data.get("locationTime"),
+            "Querytime": data.get("querytime"),
+            "Address": data.get("address"),
+            "Data Source": "GPS Positioning",
+            "Latitude": data.get("latitude"),
+            "Longitude": data.get("longitude"),
+            "GPS Accuracy": "0 m",
+            "Gaode Map Latitude": data.get("map_gcj_lat"),
+            "Gaode Map Longitude": data.get("map_gcj_lng"),
+            "Baidu Map Latitude": data.get("map_bd_lat"),
+            "Baidu Map Longitude": data.get("map_bd_lng"),
+            "Max Range": f"{data.get('maxMileage', 0)} {UnitOfLength.KILOMETERS}",
+            "Green Contribution": f"{data.get('greenContribution', 0)} kg CO₂",
+        }
+
+# class ZeehoVehiclePhotoSensor(ZeehoSensorEntity):
+#     _attr_name = "Zeeho Vehicle Photo"
+#     _attr_icon = "mdi:image"
+
+#     def __init__(self, device_name, coordinator):
+#         description = SensorEntityDescription(
+#             key="vehicle_photo",
+#             name="Zeeho Vehicle Photo",
+#         )
+#         super().__init__(device_name, description, coordinator)
+#         self._attr_unique_id = f"{coordinator.config_entry.entry_id}-vehicle_photo"
+
+#     @property
+#     def native_value(self):
+#         return self.coordinator.data.get("vehiclePicUrl")
+
+#     @property
+#     def entity_picture(self):
+#         return self.native_value
