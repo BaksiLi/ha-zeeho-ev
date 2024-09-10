@@ -1,7 +1,6 @@
 import datetime
 import logging
 
-from aiohttp.client_exceptions import ClientConnectorError
 from async_timeout import timeout
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -17,7 +16,6 @@ from .const import (
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.device_registry import DeviceEntryType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,42 +88,58 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 class ZeehoDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, logger, vehicle_home_page_client, xuhao, location_key, update_interval):
+        super().__init__(hass, logger, name=DOMAIN, update_interval=update_interval)
         self.vehicle_home_page_client = vehicle_home_page_client
         self.api_xuhao = xuhao
         self.location_key = location_key
-
-        super().__init__(hass, logger, name=DOMAIN, update_interval=update_interval)
+        self._cached_data = None  # Variable to store cached data
+        self._last_update = None   # Variable to store last update timestamp
 
     async def _async_update_data(self):
+        """Fetch and process data from the ZEEHO API with caching."""
+        current_time = datetime.datetime.now()
+
+        # Check if cached data is still valid (e.g., within the last 5 minutes)
+        if self._cached_data and (current_time - self._last_update).total_seconds() < self.update_interval.total_seconds() / 10:
+            _LOGGER.debug("Using cached data")
+            return self._cached_data
+
         try:
             async with timeout(10):
                 resdata = await self.hass.async_add_executor_job(self.vehicle_home_page_client.get_data)
-        except ClientConnectorError as error:
-            raise UpdateFailed(f"Error communicating with API: {error}")
+
+            if not resdata or "data" not in resdata:
+                raise UpdateFailed("Invalid data structure received from API")
+
+            if resdata.get("code") != "10000":
+                raise ConfigEntryAuthFailed("API returned error code")
+
+            data = resdata["data"][self.api_xuhao]
+            if not data:
+                raise UpdateFailed("Empty data received from API")
+
+            # Process the data and log the processed output for debugging
+            processed_data = self.process_data(data)
+            _LOGGER.debug("Processed data: %s", processed_data)
+
+            # Update cache
+            self._cached_data = processed_data
+            self._last_update = current_time  # Update the last update timestamp
+
+            return processed_data
+
         except Exception as error:
+            _LOGGER.error("Error updating data: %s", error)
             raise UpdateFailed(f"Unexpected error: {error}")
 
-        if "data" not in resdata:
-            raise UpdateFailed("Invalid data structure received from API")
-        
-        if resdata.get("code") != "10000":
-            raise ConfigEntryAuthFailed("API returned error code")
-
-        if len(resdata["data"]) <= self.api_xuhao:
-            raise UpdateFailed(f"No data available for index {self.api_xuhao}")
-
-        data = resdata["data"][self.api_xuhao]
-        _LOGGER.debug("Raw data received: %s", data)
-
-        if not data:
-            raise UpdateFailed("Empty data received from API")
-
+    def process_data(self, data):
+        """Process the raw data from the API."""
         querytime = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
         rideState = "Online" if data.get("rideState") == "在线" else "Offline"
         chargeState = "Charging" if data.get("chargeState") == "1" else "Fully Charged" if data.get("bmssoc") == "100" else "On Battery"
         headLockState = "Unlocked" if data.get("headLockState") == "0" else "Locked" if data.get("headLockState") == "1" else f"Unknown {data.get('headLockState', 'Unknown')}"
 
-        processed_data = {
+        return {
             "location_key": self.location_key,
             "device_model": data.get("vehicleModel", "ZeehoEV"),
             "vehicleName": data.get("vehicleName", "ZeehoEV"),
@@ -150,9 +164,6 @@ class ZeehoDataUpdateCoordinator(DataUpdateCoordinator):
             "maxMileage": self._safe_int(data.get("maxMileage")),
             "onlineStatus": data.get("onlineStatus"),
         }
-
-        _LOGGER.debug("Processed data: %s", processed_data)
-        return processed_data
 
     @staticmethod
     def _safe_float(value):

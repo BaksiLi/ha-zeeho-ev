@@ -42,9 +42,13 @@ class ZeehoVehicleHomePageClient(ZeehoAPIClient):
 
     def get_data(self) -> dict:
         url = f"{API_BASE_URL}/{self.API_PATH}"
-        response = requests.get(url, headers=self.get_headers())
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error("Error fetching data from ZEEHO API: %s", e)
+            return {}
 
 class ZeehoVehicleUnlockClient(ZeehoAPIClient):
     API_PATH = "vehicleSet/network/unlock"
